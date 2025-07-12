@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session, flash
 import os, uuid
 
 app = Flask(__name__)
@@ -22,6 +22,8 @@ def upload(target):
         # Save to session separately by target
         session[f'{target}_original_name'] = original_name
         session[f'{target}_filename'] = filename
+        # 使用 category 區分訊息
+        flash(f"成功上傳 {original_name} 至區塊 {target.upper()}！", category=target)
 
     return redirect(url_for('index'))
 

@@ -32,6 +32,15 @@
       <p>原始檔名：{{ session['a_original_name'] }}</p>
       <iframe src="{{ url_for('serve_pdf', filename=session['a_filename']) }}"></iframe>
     {% endif %}
+    {% with messages = get_flashed_messages(category_filter=['a']) %}
+    {% if messages %}
+      <ul>
+        {% for message in messages %}
+        <li class="flash">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% endwith %}
   </div>
 
   <div class="upload-box">
@@ -44,6 +53,15 @@
       <p>原始檔名：{{ session['b_original_name'] }}</p>
       <iframe src="{{ url_for('serve_pdf', filename=session['b_filename']) }}"></iframe>
     {% endif %}
+    {% with messages = get_flashed_messages(category_filter=['b']) %}
+    {% if messages %}
+      <ul>
+        {% for message in messages %}
+        <li class="flash">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% endwith %}
   </div>
 
 </body>
