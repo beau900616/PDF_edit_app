@@ -1,0 +1,4 @@
+# 忽略 uploads 資料夾內的所有內容
+uploads/*
+# 但保留 uploads 資料夾本身（需含一個空白檔案）
+!uploads/.gitkeep
