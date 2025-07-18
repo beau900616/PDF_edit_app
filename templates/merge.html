@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>PDF 合併工具</title>
+</head>
+<body>
+    <h1>PDF 合併工具</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul>
+        {% for category, message in messages %}
+          <li><strong>[{{ category.upper() }}]</strong> {{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('upload', target='merge') }}" method="post" enctype="multipart/form-data">
+        <input type="file" name="pdf_file" accept="application/pdf" required>
+        <button type="submit">上傳 PDF 進行合併</button>
+    </form>
+
+    <p><a href="{{ url_for('home') }}">返回首頁</a></p>
+</body>
+</html>

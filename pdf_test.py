@@ -7,8 +7,16 @@ UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/')
-def index():
-    return render_template('pdf_manu.html')
+def home():
+    return render_template('home.html')  # 初始畫面
+
+@app.route('/split')
+def split_pdf_page():
+    return render_template('split.html')
+
+@app.route('/merge')
+def merge_pdf_page():
+    return render_template('merge.html')
 
 @app.route('/upload/<target>', methods=['POST'])
 def upload(target):
@@ -22,10 +30,9 @@ def upload(target):
         # Save to session separately by target
         session[f'{target}_original_name'] = original_name
         session[f'{target}_filename'] = filename
-        # 使用 category 區分訊息
         flash(f"成功上傳 {original_name} 至區塊 {target.upper()}！", category=target)
 
-    return redirect(url_for('index'))
+    return redirect(url_for('split_pdf_page' if target == 'split' else 'merge_pdf_page'))
 
 @app.route('/uploads/<path:filename>')
 def serve_pdf(filename):
