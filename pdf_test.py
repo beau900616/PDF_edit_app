@@ -38,5 +38,21 @@ def upload(target):
 def serve_pdf(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
+@app.route('/perform_split', methods=['POST'])
+def perform_split():
+    page_ranges = request.form['page_ranges']
+    filename = session.get('split_filename')
+
+    if not filename:
+        flash("沒有可供分割的檔案。請先上傳 PDF。", category="split")
+        return redirect(url_for('split_pdf_page'))
+
+    # 假設你有實作 split_pdf 函數（之後可補上）
+    #output_files = split_pdf(os.path.join(UPLOAD_FOLDER, filename), page_ranges)
+
+    #flash(f"成功分割檔案，共產生 {len(output_files)} 份。", category="split")
+    return redirect(url_for('split_pdf_page'))
+
+
 if __name__ == '__main__':
     app.run(debug=True)
