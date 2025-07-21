@@ -17,10 +17,20 @@
       {% endif %}
     {% endwith %}
 
+    <!-- 上傳區塊 -->
     <form action="{{ url_for('upload', target='merge') }}" method="post" enctype="multipart/form-data">
+        <label>選擇 PDF 檔案：</label>
         <input type="file" name="pdf_file" accept="application/pdf" required>
-        <button type="submit">上傳 PDF 進行合併</button>
+        <button type="submit">🔍 預覽上傳</button>
     </form>
+
+    {% if session.get('merge_filename') %}
+    <hr>
+    <!-- 檔案資訊 + 分割 -->
+    <h3>已上傳檔案：</h3>
+    <p>檔案名稱：{{ session.get('merge_original_name') }}</p>
+    <p><a href="{{ url_for('serve_pdf', filename=session.get('merge_filename')) }}" target="_blank">📄 檢視檔案</a></p>
+    {% endif %}
 
     <p><a href="{{ url_for('home') }}">返回首頁</a></p>
 </body>
