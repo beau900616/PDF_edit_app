@@ -107,6 +107,9 @@ def perform_split():
     session['split_result_file'] = new_filename
     return redirect(url_for('split_pdf_page'))
 
+@app.route('/perform_merge', methods=['POST'])
+def perform_merge():
+    pass
 
 if __name__ == '__main__':
     app.run(debug=True)
