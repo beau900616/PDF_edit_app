@@ -33,7 +33,7 @@ def upload(target):
         session[f'{target}_filename'] = filename
         flash(f"成功上傳 {original_name} 至區塊 {target.upper()}！", category=target)
 
-    return redirect(url_for('split_pdf_page' if target == 'split' else 'merge_pdf_page'))
+    return redirect(url_for('merge_pdf_page') if target.startswith('merge') else url_for('split_pdf_page'))
 
 @app.route('/uploads/<path:filename>')
 def serve_pdf(filename):
@@ -109,7 +109,42 @@ def perform_split():
 
 @app.route('/perform_merge', methods=['POST'])
 def perform_merge():
-    pass
+    file1 = session.get("merge1_filename")
+    file2 = session.get("merge2_filename")
+
+    if not file1 or not file2:
+        flash("請先上傳兩個 PDF 檔案才能進行合併。", category="merge")
+        return redirect(url_for('merge_pdf_page'))
+    
+    file1_path = os.path.join(UPLOAD_FOLDER, file1)
+    file2_path = os.path.join(UPLOAD_FOLDER, file2)
+
+    def merge_pdf(file_path1, file_path2):
+        reader1 = PdfReader(file_path1)
+        reader2 = PdfReader(file_path2)
+        writer = PdfWriter()
+        # 加入第一份 PDF 的所有頁面
+        for page in reader1.pages:
+            writer.add_page(page)
+
+        # 加入第二份 PDF 的所有頁面
+        for page in reader2.pages:
+            writer.add_page(page)
+
+        # 儲存結果檔案
+        new_merge_filename = f"merged_{uuid.uuid4().hex}.pdf"
+        output_path = os.path.join(UPLOAD_FOLDER, new_merge_filename)
+
+        with open(output_path, 'wb') as f:
+            writer.write(f)
+
+        return new_merge_filename
+
+    merged_filename = merge_pdf(file1_path, file2_path)
+
+    session['merge_result_file'] = merged_filename
+    flash(f"PDF 已成功合併，檔名為 {merged_filename}", category="merge")
+    return redirect(url_for('merge_pdf_page'))
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -17,19 +17,46 @@
       {% endif %}
     {% endwith %}
 
-    <!-- 上傳區塊 -->
-    <form action="{{ url_for('upload', target='merge') }}" method="post" enctype="multipart/form-data">
-        <label>選擇 PDF 檔案：</label>
+    <!-- 上傳第一個檔案 -->
+    <form action="{{ url_for('upload', target='merge1') }}" method="post" enctype="multipart/form-data">
+        <label>選擇第一個 PDF(合併的前半部)：</label>
         <input type="file" name="pdf_file" accept="application/pdf" required>
-        <button type="submit">🔍 預覽上傳</button>
+        <button type="submit">🔍 上傳 PDF 1</button>
     </form>
 
-    {% if session.get('merge_filename') %}
+    <!-- 上傳第二個檔案 -->
+    <form action="{{ url_for('upload', target='merge2') }}" method="post" enctype="multipart/form-data">
+        <label>選擇第二個 PDF(合併的後半部)：</label>
+        <input type="file" name="pdf_file" accept="application/pdf" required>
+        <button type="submit">🔍 上傳 PDF 2</button>
+    </form>
+
+    <!-- 預覽區 -->
+    {% if session.get('merge1_filename') or session.get('merge2_filename') %}
     <hr>
-    <!-- 檔案資訊 + 分割 -->
-    <h3>已上傳檔案：</h3>
-    <p>檔案名稱：{{ session.get('merge_original_name') }}</p>
-    <p><a href="{{ url_for('serve_pdf', filename=session.get('merge_filename')) }}" target="_blank">📄 檢視檔案</a></p>
+    <h3>已上傳檔案預覽：</h3>
+    <ul>
+        {% if session.get('merge1_filename') %}
+        <li>📄 PDF 1：{{ session['merge1_original_name'] }} -
+            <a href="{{ url_for('serve_pdf', filename=session['merge1_filename']) }}" target="_blank">檢視</a></li>
+        {% endif %}
+        {% if session.get('merge2_filename') %}
+        <li>📄 PDF 2：{{ session['merge2_original_name'] }} -
+            <a href="{{ url_for('serve_pdf', filename=session['merge2_filename']) }}" target="_blank">檢視</a></li>
+        {% endif %}
+    </ul>
+    {% endif %}
+
+    {% if session.get('merge1_filename') and session.get('merge2_filename') %}
+      <form action="{{ url_for('perform_merge') }}" method="post">
+          <button type="submit">🔗 執行 PDF 合併</button>
+      </form>
+    {% endif %}
+
+    {% if session.get('merge_result_file') %}
+        <hr>
+        <h3>合併完成！</h3>
+        <a href="{{ url_for('serve_pdf', filename=session['merge_result_file']) }}" target="_blank">📄 下載合併後 PDF</a>
     {% endif %}
 
     <p><a href="{{ url_for('home') }}">返回首頁</a></p>
