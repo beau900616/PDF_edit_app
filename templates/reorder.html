@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>PDF 頁面排序工具</title>
+    <script src="{{ url_for('static', filename='js/Sortable.min.js') }}"></script>
 </head>
 <body>
     <h1>PDF 頁面排序工具</h1>
@@ -18,16 +19,31 @@
         <hr>
         <h2>頁面順序拖拉：</h2>
         <form action="{{ url_for('perform_reorder') }}" method="post">
-            <ul id="page-list">
+            <ul id="page-list" style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px;">
                 {% for i in range(session.get('reorder_total_pages', 0)) %}
-                    <li data-page="{{ i }}">{{ i + 1 }}</li>
+                    <li data-page="{{ i }}" style="cursor: move; border: 1px solid #ccc; padding: 5px;">
+                        <img src="{{ url_for('static', filename='thumbnails/page_' ~ i ~ '.jpg') }}"
+                             alt="Page {{ i + 1 }}" width="100"><br>
+                        <span>第 {{ i + 1 }} 頁</span>
+                    </li>
                 {% endfor %}
             </ul>
             <input type="hidden" name="new_order" id="new_order">
             <button type="submit">重新產生 PDF</button>
         </form>
+        <script>
+            const sortable = new Sortable(document.getElementById('page-list'), {
+                animation: 150
+            });
 
-        
+            document.querySelector('form').addEventListener('submit', function (e) {
+                const order = [];
+                document.querySelectorAll('#page-list li').forEach(li => {
+                    order.push(li.dataset.page);
+                });
+                document.getElementById('new_order').value = order.join(',');
+            });
+        </script>   
     {% endif %}
 </body>
 </html>

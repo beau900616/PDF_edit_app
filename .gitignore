@@ -2,3 +2,5 @@
 uploads/*
 # 但保留 uploads 資料夾本身（需含一個空白檔案）
 !uploads/.gitkeep
+#PDF頁面調換所使用到的縮圖
+static/thumbnails/*

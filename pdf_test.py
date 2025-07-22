@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session, flash
 from pypdf import PdfReader, PdfWriter
+from pdf2image import convert_from_path
 import os, uuid
 
 app = Flask(__name__)
@@ -35,9 +36,30 @@ def upload(target):
         # Save to session separately by target
         session[f'{target}_original_name'] = original_name
         session[f'{target}_filename'] = filename
+        if target == 'reorder':
+            reader = PdfReader(os.path.join(UPLOAD_FOLDER, filename))
+            session['reorder_total_pages'] = len(reader.pages)
+
+            # 清空縮圖資料夾
+            thumb_folder = os.path.join('static', 'thumbnails')
+            os.makedirs(thumb_folder, exist_ok=True)
+            for f in os.listdir(thumb_folder):
+                os.remove(os.path.join(thumb_folder, f))
+
+            # 轉換成圖檔
+            poppler_path = r'C:\Users\beau_\Downloads\Release-24.08.0-0\poppler-24.08.0\Library\bin'
+            images = convert_from_path(os.path.join(UPLOAD_FOLDER, filename), poppler_path = poppler_path)
+            for i, img in enumerate(images):
+                img.save(os.path.join(thumb_folder, f'page_{i}.jpg'), 'JPEG')
+
         flash(f"成功上傳 {original_name} 至區塊 {target.upper()}！", category=target)
 
-    return redirect(url_for('merge_pdf_page') if target.startswith('merge') else url_for('split_pdf_page'))
+    if target.startswith('merge'):
+        return redirect(url_for('merge_pdf_page'))
+    elif target.startswith('split'):
+        return redirect(url_for('split_pdf_page'))
+    else:
+        return redirect(url_for('reorder_pdf_page'))
 
 @app.route('/uploads/<path:filename>')
 def serve_pdf(filename):
@@ -149,6 +171,18 @@ def perform_merge():
     session['merge_result_file'] = merged_filename
     flash(f"PDF 已成功合併，檔名為 {merged_filename}", category="merge")
     return redirect(url_for('merge_pdf_page'))
+
+@app.route('/perform_reorder', methods= ['POST'])
+def perform_reorder():
+    filename = session.get("reorder_filename")
+    
+    if not filename:
+        flash("沒有可供分割的檔案。請先上傳 PDF。", category="reorder")
+        return redirect(url_for('split_pdf_page'))
+    
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+
+    return redirect(url_for('reorder_pdf_page'))
 
 if __name__ == '__main__':
     app.run(debug=True)
