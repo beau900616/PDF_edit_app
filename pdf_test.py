@@ -19,6 +19,10 @@ def split_pdf_page():
 def merge_pdf_page():
     return render_template('merge.html')
 
+@app.route('/reorder')
+def reorder_pdf_page():
+    return render_template('reorder.html')
+
 @app.route('/upload/<target>', methods=['POST'])
 def upload(target):
     uploaded_file = request.files['pdf_file']
