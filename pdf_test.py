@@ -1,7 +1,54 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session, flash
 from pypdf import PdfReader, PdfWriter
 from pdf2image import convert_from_path
+import webbrowser
+import zipfile
+import requests
+import threading
+from tqdm import tqdm
 import os, uuid
+
+# -------- 自動下載 Poppler（Windows） -------- #
+def get_poppler_path():
+    poppler_root = os.path.join(os.getcwd(), 'poppler')
+    if not os.path.exists(poppler_root):
+        os.makedirs(poppler_root)
+
+    # 嘗試尋找現有版本資料夾
+    for folder in os.listdir(poppler_root):
+        candidate = os.path.join(poppler_root, folder, 'Library', 'bin')
+        if os.path.isdir(candidate):
+            print(f"✅ 偵測到 Poppler 路徑：{candidate}")
+            return candidate
+
+    # 若無資料夾，自動下載最新版本
+    print("⬇️ 未偵測到 Poppler，開始下載...")
+
+    url = 'https://github.com/oschwartz10612/poppler-windows/releases/download/v24.08.0-0/Release-24.08.0-0.zip'
+    zip_path = os.path.join(os.getcwd(), 'poppler.zip')
+
+    with requests.get(url, stream=True) as r:
+        with open(zip_path, 'wb') as f:
+            for chunk in tqdm(r.iter_content(chunk_size=8192)):
+                f.write(chunk)
+
+    print("🧩 解壓縮中...")
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(poppler_root)
+
+    os.remove(zip_path)
+
+    # 再次搜尋新解壓出來的版本資料夾
+    for folder in os.listdir(poppler_root):
+        candidate = os.path.join(poppler_root, folder, 'Library', 'bin')
+        if os.path.isdir(candidate):
+            print(f"✅ Poppler 安裝完成：{candidate}")
+            return candidate
+
+    raise Exception("❌ Poppler 安裝失敗，未找到 Library/bin")
+
+# 全域 poppler_path 供 pdf2image 使用
+POPLER_PATH = get_poppler_path()
 
 app = Flask(__name__)
 app.secret_key = str(uuid.uuid4())
@@ -47,8 +94,7 @@ def upload(target):
                 os.remove(os.path.join(thumb_folder, f))
 
             # 轉換成圖檔
-            poppler_path = r'C:\Users\beau_\Downloads\Release-24.08.0-0\poppler-24.08.0\Library\bin'
-            images = convert_from_path(os.path.join(UPLOAD_FOLDER, filename), poppler_path = poppler_path)
+            images = convert_from_path(os.path.join(UPLOAD_FOLDER, filename), poppler_path = POPLER_PATH)
             for i, img in enumerate(images):
                 img.save(os.path.join(thumb_folder, f'page_{i}.jpg'), 'JPEG')
 
@@ -184,5 +230,10 @@ def perform_reorder():
 
     return redirect(url_for('reorder_pdf_page'))
 
+
+def open_browser():
+    webbrowser.open("http://127.0.0.1:5000/")
+
 if __name__ == '__main__':
+    threading.Timer(1.5, open_browser).start()
     app.run(debug=True)

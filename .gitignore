@@ -4,3 +4,5 @@ uploads/*
 !uploads/.gitkeep
 #PDF頁面調換所使用到的縮圖
 static/thumbnails/*
+#PDF2image函式庫所需要的poppler
+poppler/*
