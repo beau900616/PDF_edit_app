@@ -28,7 +28,7 @@
     {% if session.get('reorder_filename') %}
         <hr>
         <h2>頁面順序拖拉：</h2>
-        <form action="{{ url_for('perform_reorder') }}" method="post">
+        <form id="reorder-form" action="{{ url_for('perform_reorder') }}" method="post">
             <ul id="page-list" style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px;">
                 {% for i in range(session.get('reorder_total_pages', 0)) %}
                     <li data-page="{{ i }}" style="cursor: move; border: 1px solid #ccc; padding: 5px;">
@@ -38,23 +38,47 @@
                     </li>
                 {% endfor %}
             </ul>
-            <input type="hidden" name="new_order" id="new_order">
-            <button type="submit">重新產生 PDF</button>
+            <button type="button" onclick="resetOrder()">還原 PDF 排序</button>
+            <input type="hidden" name="save_new_order" id="save_new_order">
+            <button type="submit">儲存新排序 PDF</button>
         </form>
         <script>
             const sortable = new Sortable(document.getElementById('page-list'), {
                 animation: 150
             });
 
-            document.querySelector('form').addEventListener('submit', function (e) {
+            document.getElementById('reorder-form').addEventListener('submit', function (e) {
                 const order = [];
                 document.querySelectorAll('#page-list li').forEach(li => {
                     order.push(li.dataset.page);
                 });
-                document.getElementById('new_order').value = order.join(',');
+                document.getElementById('save_new_order').value = order.join(',');
             });
+
+            // 還原初始排序函數
+            function resetOrder() {
+                const list = document.getElementById('page-list');
+                const items = Array.from(list.children);
+
+                // 按 data-page 升序排序回原來順序
+                items.sort((a, b) => parseInt(a.dataset.page) - parseInt(b.dataset.page));
+
+                // 清空列表後重新加上排序好的項目
+                list.innerHTML = '';
+                items.forEach(item => list.appendChild(item));
+            }
         </script>   
     {% endif %}
+
+    {% if session.get('reorder_result_file') %}
+        <hr>
+        <p>
+            📄 <a href="{{ url_for('serve_pdf', filename=session.get('reorder_result_file')) }}" target="_blank">
+                下載重新排序後的 PDF
+            </a>
+        </p>
+    {% endif %}
+
     <p><a href="{{ url_for('home') }}">返回首頁</a></p>
 </body>
 </html>

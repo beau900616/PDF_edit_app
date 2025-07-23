@@ -83,6 +83,7 @@ def upload(target):
         # Save to session separately by target
         session[f'{target}_original_name'] = original_name
         session[f'{target}_filename'] = filename
+
         if target == 'reorder':
             reader = PdfReader(os.path.join(UPLOAD_FOLDER, filename))
             session['reorder_total_pages'] = len(reader.pages)
@@ -107,7 +108,7 @@ def upload(target):
     else:
         return redirect(url_for('reorder_pdf_page'))
 
-@app.route('/uploads/<path:filename>')
+@app.route('/downloads/<path:filename>')
 def serve_pdf(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
@@ -221,15 +222,41 @@ def perform_merge():
 @app.route('/perform_reorder', methods= ['POST'])
 def perform_reorder():
     filename = session.get("reorder_filename")
+    new_order_str = request.form.get("save_new_order")
     
-    if not filename:
-        flash("沒有可供分割的檔案。請先上傳 PDF。", category="reorder")
-        return redirect(url_for('split_pdf_page'))
+    if not filename or not new_order_str:
+        flash("缺少檔案或頁面順序資料。請重新上傳。", category="reorder")
+        return redirect(url_for('reorder_pdf_page'))
     
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
+    # 分析頁面順序（前端傳來的字串，例如："0,1,2"）
+    try:
+        new_order = [int(i) for i in new_order_str.split(',')]
+    except ValueError:
+        flash("頁面順序資料格式錯誤。", category="reorder")
+        return redirect(url_for('reorder_pdf_page'))
+    
+    # 載入原始 PDF
+    input_path = os.path.join(UPLOAD_FOLDER, filename)
+    reader = PdfReader(input_path)
+    writer = PdfWriter()
 
+    # 重建 PDF 按照排序順序
+    try:
+        for i in new_order:
+            writer.add_page(reader.pages[i])
+    except IndexError:
+        flash("指定的頁面順序超出範圍。", category="reorder")
+        return redirect(url_for('reorder_pdf_page'))
+    
+    # 輸出檔案
+    new_filename = f"reordered_{uuid.uuid4().hex}.pdf"
+    output_path = os.path.join(UPLOAD_FOLDER, new_filename)
+    with open(output_path, 'wb') as f:
+        writer.write(f)
+
+    session['reorder_result_file'] = new_filename
+    flash(f"✅ PDF 排序完成，新檔案：{new_filename}", category="reorder")
     return redirect(url_for('reorder_pdf_page'))
-
 
 def open_browser():
     webbrowser.open("http://127.0.0.1:5000/")
