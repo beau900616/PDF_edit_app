@@ -29,3 +29,16 @@ def merge_pdf(file_path1, file_path2, upload_folder):
     with open(output_path, 'wb') as f:
         writer.write(f)
     return new_filename
+
+def reorder_pdf(file_path, new_order, upload_folder):
+    reader = PdfReader(file_path)
+    writer = PdfWriter()
+    # 重建 PDF 按照排序順序
+    for i in new_order:
+        writer.add_page(reader.pages[i])    
+    # 輸出檔案
+    new_filename = f"reordered_{uuid.uuid4().hex}.pdf"
+    output_path = os.path.join(upload_folder, new_filename)
+    with open(output_path, 'wb') as f:
+        writer.write(f)
+    return new_filename

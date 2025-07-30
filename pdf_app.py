@@ -8,7 +8,7 @@ import threading
 from tqdm import tqdm
 import os, uuid
 
-from utils.pdf_utils import split_pdf, merge_pdf
+from utils.pdf_utils import split_pdf, merge_pdf, reorder_pdf
 
 # -------- 自動下載 Poppler（Windows） -------- #
 def get_poppler_path():
@@ -123,30 +123,33 @@ def perform_split():
         flash("沒有可供分割的檔案。請先上傳 PDF。", category="split")
         return redirect(url_for('split_pdf_page'))
     
-    def parse_page_ranges(input_page_ranges_str):
-        pages = set()
-        parts = input_page_ranges_str.split(',')
-
-        for part in parts:
-            part = part.strip()
-            if '-' in part:
-                start, end = part.split('-')
-                try:
-                    start, end = int(start), int(end)
-                    if start > end:
-                        raise ValueError("起始頁不能大於結束頁")
-                    pages.update(range(start, end + 1))
-                except ValueError:
-                    raise ValueError(f"無效的範圍格式：{part}")
-            else:
-                try:
-                    pages.add(int(part))
-                except ValueError:
-                    raise ValueError(f"無效的頁碼：{part}")
-
-        return sorted(pages)
-
     try:
+        def parse_page_ranges(input_page_ranges_str):
+            pages = set()
+            parts = input_page_ranges_str.split(',')
+
+            for part in parts:
+                part = part.strip()
+                if '-' in part:
+                    start, end = part.split('-')
+                    try:
+                        start, end = int(start), int(end)
+                        if start > end:
+                            flash("起始頁不能大於結束頁", category="split")
+                            raise ValueError("起始頁不能大於結束頁")
+                        pages.update(range(start, end + 1))
+                    except ValueError:
+                        flash(f"無效的範圍格式：{part}", category="split")
+                        raise ValueError(f"無效的範圍格式：{part}")
+                else:
+                    try:
+                        pages.add(int(part))
+                    except ValueError:
+                        flash(f"無效的範圍格式：{part}", category="split")
+                        raise ValueError(f"無效的頁碼：{part}")
+
+            return sorted(pages)
+        
         remove_pages = parse_page_ranges(page_ranges)
     except ValueError as e:
         flash(str(e), category="split")
@@ -195,25 +198,9 @@ def perform_reorder():
         flash("頁面順序資料格式錯誤。", category="reorder")
         return redirect(url_for('reorder_pdf_page'))
     
-    # 載入原始 PDF
-    input_path = os.path.join(UPLOAD_FOLDER, filename)
-    reader = PdfReader(input_path)
-    writer = PdfWriter()
-
-    # 重建 PDF 按照排序順序
-    try:
-        for i in new_order:
-            writer.add_page(reader.pages[i])
-    except IndexError:
-        flash("指定的頁面順序超出範圍。", category="reorder")
-        return redirect(url_for('reorder_pdf_page'))
+    input_path = os.path.join(UPLOAD_FOLDER, filename)    
+    new_filename = reorder_pdf(input_path, new_order, UPLOAD_FOLDER)
     
-    # 輸出檔案
-    new_filename = f"reordered_{uuid.uuid4().hex}.pdf"
-    output_path = os.path.join(UPLOAD_FOLDER, new_filename)
-    with open(output_path, 'wb') as f:
-        writer.write(f)
-
     session['reorder_result_file'] = new_filename
     flash(f"✅ PDF 排序完成，新檔案：{new_filename}", category="reorder")
     return redirect(url_for('reorder_pdf_page'))
