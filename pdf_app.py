@@ -8,6 +8,8 @@ import threading
 from tqdm import tqdm
 import os, uuid
 
+from utils.pdf_utils import split_pdf, merge_pdf
+
 # -------- 自動下載 Poppler（Windows） -------- #
 def get_poppler_path():
     poppler_root = os.path.join(os.getcwd(), 'poppler')
@@ -150,29 +152,9 @@ def perform_split():
         flash(str(e), category="split")
         return redirect(url_for('split_pdf_page'))
 
-    def split_pdf(file_path, remove_pages):
-        reader = PdfReader(file_path)
-        writer = PdfWriter()
-
-        total_pages = len(reader.pages)
-        # 移除頁面是從1開始，但 PdfReader 是從0開始
-        remove_indexes = set([p - 1 for p in remove_pages if 1 <= p <= total_pages])
-
-        for i in range(total_pages):
-            if i not in remove_indexes:
-                writer.add_page(reader.pages[i])
-
-        # 產生新檔名
-        new_filename = f"split_{uuid.uuid4().hex}.pdf"
-        output_path = os.path.join(UPLOAD_FOLDER, new_filename)
-        with open(output_path, 'wb') as f:
-            writer.write(f)
-
-        return new_filename
-
     # 執行分割
     input_path = os.path.join(UPLOAD_FOLDER, filename)
-    new_filename = split_pdf(input_path, remove_pages)
+    new_filename = split_pdf(input_path, remove_pages, UPLOAD_FOLDER)
 
     flash(f"已刪除頁面 {remove_pages}，產生新檔案：{new_filename}", category="split")
 
@@ -191,29 +173,7 @@ def perform_merge():
     
     file1_path = os.path.join(UPLOAD_FOLDER, file1)
     file2_path = os.path.join(UPLOAD_FOLDER, file2)
-
-    def merge_pdf(file_path1, file_path2):
-        reader1 = PdfReader(file_path1)
-        reader2 = PdfReader(file_path2)
-        writer = PdfWriter()
-        # 加入第一份 PDF 的所有頁面
-        for page in reader1.pages:
-            writer.add_page(page)
-
-        # 加入第二份 PDF 的所有頁面
-        for page in reader2.pages:
-            writer.add_page(page)
-
-        # 儲存結果檔案
-        new_merge_filename = f"merged_{uuid.uuid4().hex}.pdf"
-        output_path = os.path.join(UPLOAD_FOLDER, new_merge_filename)
-
-        with open(output_path, 'wb') as f:
-            writer.write(f)
-
-        return new_merge_filename
-
-    merged_filename = merge_pdf(file1_path, file2_path)
+    merged_filename = merge_pdf(file1_path, file2_path, UPLOAD_FOLDER)
 
     session['merge_result_file'] = merged_filename
     flash(f"PDF 已成功合併，檔名為 {merged_filename}", category="merge")

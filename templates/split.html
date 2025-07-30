@@ -21,7 +21,7 @@
     <form action="{{ url_for('upload', target='split') }}" method="post" enctype="multipart/form-data">
         <label>選擇 PDF 檔案：</label>
         <input type="file" name="pdf_file" accept="application/pdf" required>
-        <button type="submit">🔍 預覽上傳</button>
+        <button type="submit">🔍 上傳</button>
     </form>
 
     {% if session.get('split_filename') %}
