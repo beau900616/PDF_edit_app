@@ -8,54 +8,15 @@ import threading
 from tqdm import tqdm
 import os, uuid
 
-from utils.pdf_utils import split_pdf, merge_pdf, reorder_pdf
-
-# -------- 自動下載 Poppler（Windows） -------- #
-def get_poppler_path():
-    poppler_root = os.path.join(os.getcwd(), 'poppler')
-    if not os.path.exists(poppler_root):
-        os.makedirs(poppler_root)
-
-    # 嘗試尋找現有版本資料夾
-    for folder in os.listdir(poppler_root):
-        candidate = os.path.join(poppler_root, folder, 'Library', 'bin')
-        if os.path.isdir(candidate):
-            print(f"✅ 偵測到 Poppler 路徑：{candidate}")
-            return candidate
-
-    # 若無資料夾，自動下載最新版本
-    print("⬇️ 未偵測到 Poppler，開始下載...")
-
-    url = 'https://github.com/oschwartz10612/poppler-windows/releases/download/v24.08.0-0/Release-24.08.0-0.zip'
-    zip_path = os.path.join(os.getcwd(), 'poppler.zip')
-
-    with requests.get(url, stream=True) as r:
-        with open(zip_path, 'wb') as f:
-            for chunk in tqdm(r.iter_content(chunk_size=8192)):
-                f.write(chunk)
-
-    print("🧩 解壓縮中...")
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(poppler_root)
-
-    os.remove(zip_path)
-
-    # 再次搜尋新解壓出來的版本資料夾
-    for folder in os.listdir(poppler_root):
-        candidate = os.path.join(poppler_root, folder, 'Library', 'bin')
-        if os.path.isdir(candidate):
-            print(f"✅ Poppler 安裝完成：{candidate}")
-            return candidate
-
-    raise Exception("❌ Poppler 安裝失敗，未找到 Library/bin")
+from pdf_utils import get_poppler_path, split_pdf, merge_pdf, reorder_pdf
+import config
 
 # 全域 poppler_path 供 pdf2image 使用
 POPLER_PATH = get_poppler_path()
 
 app = Flask(__name__)
 app.secret_key = str(uuid.uuid4())
-UPLOAD_FOLDER = 'uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(config.UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/')
 def home():
@@ -80,14 +41,14 @@ def upload(target):
         original_name = uploaded_file.filename
         ext = os.path.splitext(original_name)[1]
         filename = f"{uuid.uuid4().hex}{ext}"
-        uploaded_file.save(os.path.join(UPLOAD_FOLDER, filename))
+        uploaded_file.save(os.path.join(config.UPLOAD_FOLDER, filename))
 
         # Save to session separately by target
         session[f'{target}_original_name'] = original_name
         session[f'{target}_filename'] = filename
 
         if target == 'reorder':
-            reader = PdfReader(os.path.join(UPLOAD_FOLDER, filename))
+            reader = PdfReader(os.path.join(config.UPLOAD_FOLDER, filename))
             session['reorder_total_pages'] = len(reader.pages)
 
             # 清空縮圖資料夾
@@ -97,7 +58,7 @@ def upload(target):
                 os.remove(os.path.join(thumb_folder, f))
 
             # 轉換成圖檔
-            images = convert_from_path(os.path.join(UPLOAD_FOLDER, filename), poppler_path = POPLER_PATH)
+            images = convert_from_path(os.path.join(config.UPLOAD_FOLDER, filename), poppler_path = POPLER_PATH)
             for i, img in enumerate(images):
                 img.save(os.path.join(thumb_folder, f'page_{i}.jpg'), 'JPEG')
 
@@ -112,7 +73,7 @@ def upload(target):
 
 @app.route('/downloads/<path:filename>')
 def serve_pdf(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
+    return send_from_directory(config.UPLOAD_FOLDER, filename)
 
 @app.route('/perform_split', methods=['POST'])
 def perform_split():
@@ -156,8 +117,8 @@ def perform_split():
         return redirect(url_for('split_pdf_page'))
 
     # 執行分割
-    input_path = os.path.join(UPLOAD_FOLDER, filename)
-    new_filename = split_pdf(input_path, remove_pages, UPLOAD_FOLDER)
+    input_path = os.path.join(config.UPLOAD_FOLDER, filename)
+    new_filename = split_pdf(input_path, remove_pages, config.UPLOAD_FOLDER)
 
     flash(f"已刪除頁面 {remove_pages}，產生新檔案：{new_filename}", category="split")
 
@@ -174,9 +135,9 @@ def perform_merge():
         flash("請先上傳兩個 PDF 檔案才能進行合併。", category="merge")
         return redirect(url_for('merge_pdf_page'))
     
-    file1_path = os.path.join(UPLOAD_FOLDER, file1)
-    file2_path = os.path.join(UPLOAD_FOLDER, file2)
-    merged_filename = merge_pdf(file1_path, file2_path, UPLOAD_FOLDER)
+    file1_path = os.path.join(config.UPLOAD_FOLDER, file1)
+    file2_path = os.path.join(config.UPLOAD_FOLDER, file2)
+    merged_filename = merge_pdf(file1_path, file2_path, config.UPLOAD_FOLDER)
 
     session['merge_result_file'] = merged_filename
     flash(f"PDF 已成功合併，檔名為 {merged_filename}", category="merge")
@@ -198,8 +159,8 @@ def perform_reorder():
         flash("頁面順序資料格式錯誤。", category="reorder")
         return redirect(url_for('reorder_pdf_page'))
     
-    input_path = os.path.join(UPLOAD_FOLDER, filename)    
-    new_filename = reorder_pdf(input_path, new_order, UPLOAD_FOLDER)
+    input_path = os.path.join(config.UPLOAD_FOLDER, filename)    
+    new_filename = reorder_pdf(input_path, new_order, config.UPLOAD_FOLDER)
     
     session['reorder_result_file'] = new_filename
     flash(f"✅ PDF 排序完成，新檔案：{new_filename}", category="reorder")

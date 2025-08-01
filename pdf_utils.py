@@ -1,6 +1,49 @@
 from pypdf import PdfReader, PdfWriter
 import uuid
 import os
+import zipfile
+import requests
+from tqdm import tqdm
+
+import config
+
+# -------- 自動下載 Poppler（Windows） -------- #
+def get_poppler_path():
+    poppler_root = os.path.join(os.getcwd(), config.POPLER_FOLDER_NAME)
+    if not os.path.exists(poppler_root):
+        os.makedirs(poppler_root)
+
+    # 嘗試尋找現有版本資料夾
+    for folder in os.listdir(poppler_root):
+        candidate = os.path.join(poppler_root, folder, config.POPLER_EXTRACT_SUBPATH)
+        if os.path.isdir(candidate):
+            print(f"✅ 偵測到 Poppler 路徑：{candidate}")
+            return candidate
+
+    # 若無資料夾，自動下載最新版本
+    print("⬇️ 未偵測到 Poppler，開始下載...")
+
+    zip_path = os.path.join(os.getcwd(), 'poppler.zip')
+
+    with requests.get(config.POPLER_DOWNLOAD_URL, stream=True) as r:
+        with open(zip_path, 'wb') as f:
+            for chunk in tqdm(r.iter_content(chunk_size=8192)):
+                f.write(chunk)
+
+    print("🧩 解壓縮中...")
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(poppler_root)
+
+    os.remove(zip_path)
+
+    # 再次搜尋新解壓出來的版本資料夾
+    for folder in os.listdir(poppler_root):
+        candidate = os.path.join(poppler_root, folder, config.POPLER_EXTRACT_SUBPATH)
+        if os.path.isdir(candidate):
+            print(f"✅ Poppler 安裝完成：{candidate}")
+            return candidate
+
+    raise Exception("❌ Poppler 安裝失敗，未找到 Library/bin")
 
 def split_pdf(file_path, remove_pages, upload_folder):
     reader = PdfReader(file_path)
