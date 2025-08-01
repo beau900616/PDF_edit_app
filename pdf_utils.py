@@ -45,6 +45,23 @@ def get_poppler_path():
 
     raise Exception("❌ Poppler 安裝失敗，未找到 Library/bin")
 
+class InvalidPageRangeError(Exception):
+    pass
+
+def parse_page_ranges(input_str):
+    try:
+        result = set()
+        parts = input_str.split(",")
+        for part in parts:
+            if '-' in part:
+                start, end = map(int, part.split('-'))
+                result.update(range(start, end + 1))
+            else:
+                result.add(int(part))
+        return sorted(result)
+    except Exception:
+        raise InvalidPageRangeError("格式錯誤，請輸入像是 1,3-5 這樣的格式")
+
 def split_pdf(file_path, remove_pages, upload_folder):
     reader = PdfReader(file_path)
     writer = PdfWriter()
