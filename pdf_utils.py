@@ -53,8 +53,11 @@ def parse_page_ranges(input_str):
         result = set()
         parts = input_str.split(",")
         for part in parts:
+            part = part.strip()
             if '-' in part:
                 start, end = map(int, part.split('-'))
+                if start >= end:
+                    raise InvalidPageRangeError(f"頁碼範圍錯誤：{start}-{end} 順序不正確")
                 result.update(range(start, end + 1))
             else:
                 result.add(int(part))

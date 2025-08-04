@@ -8,7 +8,9 @@ import threading
 from tqdm import tqdm
 import os, uuid
 
-from pdf_utils import get_poppler_path, split_pdf, merge_pdf, reorder_pdf
+from pdf_utils import get_poppler_path
+from pdf_utils import parse_page_ranges, InvalidPageRangeError
+from pdf_utils import split_pdf, merge_pdf, reorder_pdf
 import config
 
 # 全域 poppler_path 供 pdf2image 使用
@@ -85,34 +87,9 @@ def perform_split():
         return redirect(url_for('split_pdf_page'))
     
     try:
-        def parse_page_ranges(input_page_ranges_str):
-            pages = set()
-            parts = input_page_ranges_str.split(',')
-
-            for part in parts:
-                part = part.strip()
-                if '-' in part:
-                    start, end = part.split('-')
-                    try:
-                        start, end = int(start), int(end)
-                        if start > end:
-                            flash("起始頁不能大於結束頁", category="split")
-                            raise ValueError("起始頁不能大於結束頁")
-                        pages.update(range(start, end + 1))
-                    except ValueError:
-                        flash(f"無效的範圍格式：{part}", category="split")
-                        raise ValueError(f"無效的範圍格式：{part}")
-                else:
-                    try:
-                        pages.add(int(part))
-                    except ValueError:
-                        flash(f"無效的範圍格式：{part}", category="split")
-                        raise ValueError(f"無效的頁碼：{part}")
-
-            return sorted(pages)
-        
         remove_pages = parse_page_ranges(page_ranges)
-    except ValueError as e:
+    except InvalidPageRangeError as e:
+        print(str(e))
         flash(str(e), category="split")
         return redirect(url_for('split_pdf_page'))
 
