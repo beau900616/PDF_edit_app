@@ -2,10 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, send_from_
 from pypdf import PdfReader, PdfWriter
 from pdf2image import convert_from_path
 import webbrowser
-import zipfile
-import requests
 import threading
-from tqdm import tqdm
 import os, uuid
 
 from pdf_utils import get_poppler_path
