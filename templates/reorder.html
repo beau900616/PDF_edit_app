@@ -1,6 +1,20 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
+    <style>
+        .page-item {
+            border: 2px solid transparent;
+            padding: 5px;
+            cursor: pointer;
+            text-align: center;
+            transition: border 0.2s;
+        }
+
+        .page-item.selected {
+            border: 2px solid #007BFF; /* Bootstrap 藍色 */
+            background-color: #e7f1ff;
+        }
+    </style>
     <meta charset="UTF-8">
     <title>PDF 頁面排序工具</title>
     <script src="{{ url_for('static', filename='js/Sortable.min.js') }}"></script>
@@ -31,7 +45,7 @@
         <form id="reorder-form" action="{{ url_for('perform_reorder') }}" method="post">
             <ul id="page-list" style="list-style: none; display: flex; flex-wrap: wrap; gap: 10px;">
                 {% for i in range(session.get('reorder_total_pages', 0)) %}
-                    <li data-page="{{ i }}" style="cursor: move; border: 1px solid #ccc; padding: 5px;">
+                    <li class="page-item" data-page="{{ i }}" style="cursor: move; border: 1px solid #ccc; padding: 5px;">
                         <img src="{{ url_for('static', filename='thumbnails/page_' ~ i ~ '.jpg') }}"
                              alt="Page {{ i + 1 }}" width="100"><br>
                         <span>第 {{ i + 1 }} 頁</span>
@@ -39,17 +53,33 @@
                 {% endfor %}
             </ul>
             <button type="button" onclick="resetOrder()">還原 PDF 排序</button>
+            <button type="button" onclick="deleteSelectedPages()">🗑️ 刪除選取頁面</button>
             <input type="hidden" name="save_new_order" id="save_new_order">
             <button type="submit">儲存新排序 PDF</button>
         </form>
         <script>
-            const sortable = new Sortable(document.getElementById('page-list'), {
-                animation: 150
+            const pageList = document.getElementById('page-list');
+            new Sortable(pageList, {
+                animation: 150,
+                // optional: filter to prevent clicking on img or span from dragging
+                ghostClass: 'ghost'
             });
+
+            pageList.addEventListener('click', function (e) {
+                const li = e.target.closest('.page-item');
+                if (li) {
+                    li.classList.toggle('selected');
+                    }
+            });
+
+            function deleteSelectedPages() {
+                const selected = document.querySelectorAll('.page-item.selected');
+                selected.forEach(item => item.remove());
+            }
 
             document.getElementById('reorder-form').addEventListener('submit', function (e) {
                 const order = [];
-                document.querySelectorAll('#page-list li').forEach(li => {
+                document.querySelectorAll('#page-list .page-item').forEach(li => {
                     order.push(li.dataset.page);
                 });
                 document.getElementById('save_new_order').value = order.join(',');
@@ -57,15 +87,13 @@
 
             // 還原初始排序函數
             function resetOrder() {
-                const list = document.getElementById('page-list');
-                const items = Array.from(list.children);
-
-                // 按 data-page 升序排序回原來順序
+                const items = Array.from(document.querySelectorAll('.page-item'));
                 items.sort((a, b) => parseInt(a.dataset.page) - parseInt(b.dataset.page));
-
-                // 清空列表後重新加上排序好的項目
-                list.innerHTML = '';
-                items.forEach(item => list.appendChild(item));
+                pageList.innerHTML = '';
+                items.forEach(item => {
+                    item.classList.remove('selected');
+                    pageList.appendChild(item);
+                });
             }
         </script>   
     {% endif %}

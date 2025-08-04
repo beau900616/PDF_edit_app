@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session, flash
-from pypdf import PdfReader, PdfWriter
+from pypdf import PdfReader
 from pdf2image import convert_from_path
 import webbrowser
 import threading
