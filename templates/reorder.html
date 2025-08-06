@@ -59,6 +59,9 @@
         </form>
         <script>
             const pageList = document.getElementById('page-list');
+            // 在頁面載入時保存原始順序
+            const originalPages = Array.from(pageList.children).map(li => li.outerHTML);
+
             new Sortable(pageList, {
                 animation: 150,
                 // optional: filter to prevent clicking on img or span from dragging
@@ -87,12 +90,13 @@
 
             // 還原初始排序函數
             function resetOrder() {
-                const items = Array.from(document.querySelectorAll('.page-item'));
-                items.sort((a, b) => parseInt(a.dataset.page) - parseInt(b.dataset.page));
                 pageList.innerHTML = '';
-                items.forEach(item => {
-                    item.classList.remove('selected');
-                    pageList.appendChild(item);
+                originalPages.forEach(html => {
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = html.trim();
+                    const li = wrapper.firstChild;
+                    li.classList.remove('selected');
+                    pageList.appendChild(li);
                 });
             }
         </script>   
